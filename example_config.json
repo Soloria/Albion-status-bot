@@ -1,0 +1,8 @@
+﻿{
+  "proxy_ip": "",
+  "proxy_port": "",
+  "username": "",
+  "password": "",
+
+  "token": "Telegram bot API token" 
+}
