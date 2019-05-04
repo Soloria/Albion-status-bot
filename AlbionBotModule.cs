@@ -5,9 +5,11 @@ namespace AlbionStatusBot
     using AlbionApi;
     using Bot;
     using DotNetEnv;
+    using Job;
+    using LiteDB;
     using Microsoft.Extensions.Configuration;
-    using Ninject;
     using Ninject.Modules;
+    using Quartz;
 
     public class AlbionBotModule : NinjectModule
     {
@@ -17,9 +19,16 @@ namespace AlbionStatusBot
                 new ConfigurationBuilder()
                     .AddInMemoryCollection(new Dictionary<string, string>
                     {
-                        {"bot_token", Env.GetString("BOT_TOKEN")}
+                        {"bot_token", Env.GetString("BOT_TOKEN")},
+                        {"notification_channel", Env.GetString("NOTIFICATION_CHANNEL")}
                     }).Build()
             );
+
+            Bind<LiteDatabase>().ToMethod(context => new LiteDatabase("albion.kukarek"));
+
+            Bind<NinjectJobFactory>().ToSelf();
+            Bind<IJob>().To<UpdateStatusJob>();
+            Bind<Scheduler>().ToSelf();
 
             Bind<IWebProxy>().ToMethod(context => new WebProxy());
             Bind<AlbionApiClient>().ToSelf();
