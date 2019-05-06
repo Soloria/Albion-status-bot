@@ -1,10 +1,12 @@
 namespace AlbionStatusBot.AlbionApi
 {
     using System;
+    using LiteDB;
     using Newtonsoft.Json;
 
-    public class AlbionResponse
+    public class AlbionServerStatus
     {
+        public ObjectId Id { get; set; }
         [JsonProperty("created_at")] public DateTimeOffset CreatedAt { get; set; }
 
         [JsonProperty("current_status")] public string CurrentStatus { get; set; }

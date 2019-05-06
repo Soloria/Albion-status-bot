@@ -2,8 +2,10 @@ namespace AlbionStatusBot.Bot
 {
     using System.Linq;
     using System.Net;
+    using System.Threading.Tasks;
     using AlbionApi;
     using Microsoft.Extensions.Configuration;
+    using Storage;
     using Telegram.Bot;
     using Telegram.Bot.Args;
     using Telegram.Bot.Types;
@@ -11,16 +13,33 @@ namespace AlbionStatusBot.Bot
 
     public class TelegramBot : TelegramBotClient
     {
-        private readonly AlbionApiClient _albionApiClient;
+        private readonly long _notificationChannel;
+        private readonly StatusStorage _storage;
 
         public TelegramBot(
             IConfiguration configuration,
-            AlbionApiClient albionApiClient,
-            IWebProxy webProxy
+            IWebProxy webProxy, StatusStorage storage
         ) : base(configuration["bot_token"], webProxy)
         {
-            _albionApiClient = albionApiClient;
+            _storage = storage;
+            _notificationChannel = long.Parse(configuration["notification_channel"]);
             OnUpdate += Tick;
+        }
+
+        public Task SendServerStatusMessage(AlbionServerStatus status, long chatId = default)
+        {
+            if (chatId == default)
+            {
+                chatId = _notificationChannel;
+            }
+
+            var message = $"Current server status: <b>{status.CurrentStatus}</b>";
+
+            return SendTextMessageAsync(
+                chatId,
+                message,
+                ParseMode.Html
+            );
         }
 
         public void Run()
@@ -32,18 +51,9 @@ namespace AlbionStatusBot.Bot
         {
             if (command == "/get_status")
             {
-                var status = await _albionApiClient.GetServerStatus();
+                var status = _storage.GetLast();
 
-                var apiMessage = char.ToUpper(status.Message[0]) + status.Message.Substring(1);
-
-                var message = $"<b>{apiMessage}</b>\n\n" + 
-                              $"( server status: <b>{status.CurrentStatus}</b> )";
-
-                await SendTextMessageAsync(
-                    update.Message.Chat.Id,
-                    message,
-                    ParseMode.Html
-                );
+                await SendServerStatusMessage(status, update.Message.Chat.Id);
             }
         }
 
@@ -58,7 +68,10 @@ namespace AlbionStatusBot.Bot
 
             var messageEntities = entities as MessageEntity[] ?? entities.ToArray();
 
-            if (!messageEntities.Any()) return;
+            if (!messageEntities.Any())
+            {
+                return;
+            }
 
             foreach (var messageEntity in messageEntities)
             {
