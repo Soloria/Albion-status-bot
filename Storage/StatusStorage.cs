@@ -14,11 +14,12 @@ namespace AlbionStatusBot.Storage
 
         public bool UpdateStatus(AlbionServerStatus status)
         {
-            _statuses.EnsureIndex(x => x.CreatedAt, true);
+           
+            _statuses.EnsureIndex(x => x.CurrentStatus, true);
 
             var last = GetLast();
 
-            if (last == null || last.CreatedAt != status.CreatedAt)
+            if (last == null || last.CurrentStatus != status.CurrentStatus)
             {
                 _statuses.Insert(status);
 
@@ -30,7 +31,7 @@ namespace AlbionStatusBot.Storage
 
         public AlbionServerStatus GetLast()
         {
-            return _statuses.FindOne(Query.All("CreatedAt", Query.Descending));
+            return _statuses.FindOne(Query.All("CurrentStatus", Query.Descending));
         }
     }
 }
