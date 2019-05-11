@@ -1,4 +1,4 @@
-namespace AlbionStatusBot.AlbionApi
+namespace ASB.API
 {
     using System.Linq;
     using System.Threading.Tasks;
@@ -8,11 +8,11 @@ namespace AlbionStatusBot.AlbionApi
     {
         private readonly string _endpoint = "https://api.albionstatus.com/current/";
 
-        public async Task<AlbionServerStatus> GetServerStatus()
+        public async Task<ServerStatus> GetServerStatus()
         {
             var data = await _endpoint
                 .GetAsync()
-                .ReceiveJson<AlbionServerStatus[]>();
+                .ReceiveJson<ServerStatus[]>();
 
             return data.First();
         }

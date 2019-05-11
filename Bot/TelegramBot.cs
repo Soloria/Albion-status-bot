@@ -1,10 +1,11 @@
-namespace AlbionStatusBot.Bot
+namespace ASB.Bot
 {
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
-    using AlbionApi;
+    using API;
     using Microsoft.Extensions.Configuration;
+    using Newtonsoft.Json;
     using Storage;
     using Telegram.Bot;
     using Telegram.Bot.Args;
@@ -14,24 +15,21 @@ namespace AlbionStatusBot.Bot
     public class TelegramBot : TelegramBotClient
     {
         private readonly long _notificationChannel;
-        private readonly StatusStorage _storage;
+        private readonly LocalContext _storage;
 
-        public TelegramBot(
-            IConfiguration configuration,
-            IWebProxy webProxy, StatusStorage storage
-        ) : base(configuration["bot_token"], webProxy)
+        public TelegramBot(IConfiguration configuration, LocalContext storage) 
+            : base(configuration["bot_token"]/*, new WebProxy("51.38.71.101", 8080)*/)
         {
             _storage = storage;
+            // TODO Need to safe get value
             _notificationChannel = long.Parse(configuration["notification_channel"]);
             OnUpdate += Tick;
         }
 
-        public Task SendServerStatusMessage(AlbionServerStatus status, long chatId = default)
+        public Task SendServerStatusMessage(ServerStatus status, long chatId = default)
         {
-            if (chatId == default)
-            {
-                chatId = _notificationChannel;
-            }
+            if (chatId == default) chatId = _notificationChannel;
+            if (status == default) return Task.CompletedTask;
 
             var message = $"Current server status: <b>{status.CurrentStatus}</b>";
 
@@ -42,36 +40,47 @@ namespace AlbionStatusBot.Bot
             );
         }
 
-        public void Run()
+        private async Task SendDebugStatusMessage(ServerStatus status, long chatId)
         {
-            StartReceiving();
+            await SendTextMessageAsync(
+                chatId,
+                $"```\n{JsonConvert.SerializeObject(status)}\n```",
+                ParseMode.Markdown
+            );
         }
+
+        public void Run() => StartReceiving();
 
         private async void ExecuteCommand(string command, Update update)
         {
-            if (command == "/get_status")
+            // 'start' command required by telegram bot standard
+            if (command == "/get_status" || command == "/start")
             {
-                var status = _storage.GetLast();
+                var status = await _storage.GetLast();
 
                 await SendServerStatusMessage(status, update.Message.Chat.Id);
+            }
+            // get raw json from db
+            if (command == "/debug_status")
+            {
+                var status = await _storage.GetLast();
+
+                await SendDebugStatusMessage(status, update.Message.Chat.Id)
+                    .ContinueWith(x => x.Status); // skip error when exist)0
             }
         }
 
         private void Tick(object sender, UpdateEventArgs e)
         {
             if (e.Update.Message?.Entities == null)
-            {
                 return;
-            }
 
             var entities = e.Update.Message.Entities.Where(x => x.Type == MessageEntityType.BotCommand);
 
             var messageEntities = entities as MessageEntity[] ?? entities.ToArray();
 
             if (!messageEntities.Any())
-            {
                 return;
-            }
 
             foreach (var messageEntity in messageEntities)
             {

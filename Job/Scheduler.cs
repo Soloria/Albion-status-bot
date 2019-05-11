@@ -1,16 +1,13 @@
-namespace AlbionStatusBot.Job
+namespace ASB.Job
 {
     using Quartz;
     using Quartz.Impl;
 
     public class Scheduler
     {
-        private readonly NinjectJobFactory _jobFactory;
+        private readonly ClassicJobFactory _jobFactory;
 
-        public Scheduler(NinjectJobFactory jobFactory)
-        {
-            _jobFactory = jobFactory;
-        }
+        public Scheduler(ClassicJobFactory jobFactory) => _jobFactory = jobFactory;
 
         public async void Run()
         {
