@@ -1,7 +1,7 @@
-namespace AlbionStatusBot.Job
+namespace ASB.Job
 {
     using System.Threading.Tasks;
-    using AlbionApi;
+    using API;
     using Bot;
     using Quartz;
     using Storage;
@@ -9,10 +9,10 @@ namespace AlbionStatusBot.Job
     public class UpdateStatusJob : IJob
     {
         private readonly AlbionApiClient _albion;
-        private readonly StatusStorage _storage;
+        private readonly LocalContext _storage;
         private readonly TelegramBot _telegram;
 
-        public UpdateStatusJob(AlbionApiClient albion, StatusStorage storage, TelegramBot telegram)
+        public UpdateStatusJob(AlbionApiClient albion, LocalContext storage, TelegramBot telegram)
         {
             _albion = albion;
             _storage = storage;
@@ -22,12 +22,10 @@ namespace AlbionStatusBot.Job
         public async Task Execute(IJobExecutionContext context)
         {
             var status = await _albion.GetServerStatus();
-            var isUpdated = _storage.UpdateStatus(status);
+            var isUpdated = await _storage.UpdateStatus(status);
 
             if (isUpdated)
-            {
                 await _telegram.SendServerStatusMessage(status);
-            }
         }
     }
 }
