@@ -27,6 +27,9 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.2.0" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="2.2.0" />
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="2.2.0" />
+        <PackageReference Include="morelinq" Version="3.1.1" />
+        <PackageReference Include="NLog" Version="4.6.3" />
+        <PackageReference Include="NLog.Extensions.Logging" Version="1.5.0" />
         <PackageReference Include="Quartz" Version="3.0.7" />
         <PackageReference Include="Telegram.Bot" Version="14.11.0" />
     </ItemGroup>
@@ -34,6 +37,9 @@
     <ItemGroup>
         <None Update="Config.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="NLog.config">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="quartz.config">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
