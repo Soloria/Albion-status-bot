@@ -5,6 +5,7 @@ namespace ASB.Bot
     using System.Threading.Tasks;
     using API;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Storage;
     using Telegram.Bot;
@@ -16,11 +17,13 @@ namespace ASB.Bot
     {
         private readonly long _notificationChannel;
         private readonly LocalContext _storage;
+        private readonly ILogger<TelegramBot> _logger;
 
-        public TelegramBot(IConfiguration configuration, LocalContext storage) 
+        public TelegramBot(IConfiguration configuration, LocalContext storage, ILogger<TelegramBot> logger) 
             : base(configuration["bot_token"]/*, new WebProxy("51.38.71.101", 8080)*/)
         {
             _storage = storage;
+            _logger = logger;
             // TODO Need to safe get value
             _notificationChannel = long.Parse(configuration["notification_channel"]);
             OnUpdate += Tick;
@@ -53,6 +56,7 @@ namespace ASB.Bot
 
         private async void ExecuteCommand(string command, Update update)
         {
+            _logger.LogTrace($"[{nameof(ExecuteCommand)}] ({command}) ID:{update.Id}, from @{update.Message.From.Username}");
             // 'start' command required by telegram bot standard
             if (command == "/get_status" || command == "/start")
             {
