@@ -6,7 +6,7 @@
     using System.Linq.Expressions;
     using System.Reflection;
 
-    public class CommandFactory
+    public class CommandFactory : IServiceProviderBridge
     {
         /// <summary>
         /// DI Container
@@ -24,32 +24,31 @@
         }
 
 
-
-
         protected void FindReflection()
         {
             var cmds = AppDomain.CurrentDomain
                 .GetAssemblies()
+                // ignore dynamic assembly
+                .Where(x => !x.IsDynamic)
                 // Select ExportedTypes and merge in signle collection
                 .SelectMany(x => x.ExportedTypes)
                 // if assigned ICmd
-                .Where(x => x.IsAssignableFrom(typeof(ICmd)))
+                .Where(x => typeof(ICmd).IsAssignableFrom(x))
                 // if assigned IFactoryInjector
-                .Where(x => x.IsAssignableFrom(typeof(IFactoryInjector)))
+                .Where(x => typeof(IFactoryInjector).IsAssignableFrom(x))
                 // if assigned ITgEventExecuter
-                .Where(x => x.IsAssignableFrom(typeof(ITgEventExecuter)))
+                .Where(x => typeof(ITgEventExecuter).IsAssignableFrom(x))
+                // ignore abstract and interface types
+                .Where(x => !x.IsInterface && !x.IsAbstract)
                 // if empty .cctor
                 .Where(x => x.GetConstructors().Any(z => !z.GetParameters().Any()));
 
             foreach (var type in cmds)
             {
                 var instance = Activator.CreateInstance(type);
-                if (instance is ICmd cmd && instance is IFactoryInjector injector)
-                {
+                if (instance is ICmd cmd )
                     storage.Add((Guid.NewGuid(), cmd.Aliases), type);
-                    injector.Inject(this);
-                }
-                if(instance is IDisposable disposable)
+                if (instance is IDisposable disposable)
                     disposable.Dispose();
             }
         }
@@ -63,10 +62,15 @@
             if (storage.Any(exp))
             {
                 var instance = Activator.CreateInstance(storage.First(exp).Value);
-                if (instance is T result)
+                if (instance is T result && instance is IFactoryInjector injector)
+                {
+                    injector.Inject(this);
                     return result;
+                }
             }
             return default;
         }
+
+        IServiceProvider IServiceProviderBridge.GetProvider() => this._storage;
     }
 }

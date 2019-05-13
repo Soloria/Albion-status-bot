@@ -4,6 +4,7 @@ namespace ASB.Bot
     using System.Net;
     using System.Threading.Tasks;
     using API;
+    using Commands;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -18,14 +19,16 @@ namespace ASB.Bot
         private readonly long _notificationChannel;
         private readonly LocalContext _storage;
         private readonly ILogger<TelegramBot> _logger;
+        private readonly CommandFactory _cmdFactory;
 
-        public TelegramBot(IConfiguration configuration, LocalContext storage, ILogger<TelegramBot> logger) 
-            : base(configuration["bot_token"]/*, new WebProxy("51.38.71.101", 8080)*/)
+        public TelegramBot(IConfiguration configuration, LocalContext storage, ILogger<TelegramBot> logger, CommandFactory cmdFactory) 
+            : base(configuration["bot_token"], new WebProxy("51.38.71.101", 8080))
         {
             _storage = storage;
             _logger = logger;
+            _cmdFactory = cmdFactory;
             // TODO Need to safe get value
-            _notificationChannel = long.Parse(configuration["notification_channel"]);
+            //_notificationChannel = long.Parse(configuration["notification_channel"]);
             OnUpdate += Tick;
         }
 
@@ -33,6 +36,7 @@ namespace ASB.Bot
         {
             if (chatId == default) chatId = _notificationChannel;
             if (status == default) return Task.CompletedTask;
+            if (chatId == default) return Task.CompletedTask;
 
             var message = $"Current server status: <b>{status.CurrentStatus}</b>";
 
@@ -43,7 +47,7 @@ namespace ASB.Bot
             );
         }
 
-        private async Task SendDebugStatusMessage(ServerStatus status, long chatId)
+        public async Task SendDebugStatusMessage(ServerStatus status, long chatId)
         {
             await SendTextMessageAsync(
                 chatId,
@@ -57,21 +61,8 @@ namespace ASB.Bot
         private async void ExecuteCommand(string command, Update update)
         {
             _logger.LogTrace($"[{nameof(ExecuteCommand)}] ({command}) ID:{update.Id}, from @{update.Message.From.Username}");
-            // 'start' command required by telegram bot standard
-            if (command == "/get_status" || command == "/start")
-            {
-                var status = await _storage.GetLast();
 
-                await SendServerStatusMessage(status, update.Message.Chat.Id);
-            }
-            // get raw json from db
-            if (command == "/debug_status")
-            {
-                var status = await _storage.GetLast();
-
-                await SendDebugStatusMessage(status, update.Message.Chat.Id)
-                    .ContinueWith(x => x.Status); // skip error when exist)0
-            }
+            await _cmdFactory.Find<ITgEventExecuter>(command).ExecuteAsync(update);
         }
 
         private void Tick(object sender, UpdateEventArgs e)
