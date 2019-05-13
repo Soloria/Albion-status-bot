@@ -46,6 +46,7 @@
                 services.AddSingleton<CommandFactory>();
 
                 services.AddTransient<IJob, UpdateStatusJob>();
+                services.AddTransient<IJob, CleanUpJob>();
                 services.AddTransient<LocalContext>();
 
                 services.AddHostedService<WarmUpService>();
