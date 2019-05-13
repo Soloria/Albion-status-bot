@@ -22,13 +22,13 @@ namespace ASB.Bot
         private readonly CommandFactory _cmdFactory;
 
         public TelegramBot(IConfiguration configuration, LocalContext storage, ILogger<TelegramBot> logger, CommandFactory cmdFactory) 
-            : base(configuration["bot_token"], new WebProxy("51.38.71.101", 8080))
+            : base(configuration["bot_token"]/*, new WebProxy("51.38.71.101", 8080)*/)
         {
             _storage = storage;
             _logger = logger;
             _cmdFactory = cmdFactory;
             // TODO Need to safe get value
-            //_notificationChannel = long.Parse(configuration["notification_channel"]);
+            _notificationChannel = long.Parse(configuration["notification_channel"]);
             OnUpdate += Tick;
         }
 
@@ -36,7 +36,6 @@ namespace ASB.Bot
         {
             if (chatId == default) chatId = _notificationChannel;
             if (status == default) return Task.CompletedTask;
-            if (chatId == default) return Task.CompletedTask;
 
             var message = $"Current server status: <b>{status.CurrentStatus}</b>";
 
